@@ -1,0 +1,28 @@
+# Vagrant
+.vagrant/
+*.log
+
+# Ansible
+*.retry
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+
+# Temporary files
+*.tmp
+*.temp
+*.odt
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
