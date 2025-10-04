@@ -1,0 +1,41 @@
+---
+- name: Base server configuration for DevOps
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Update and upgrade system
+      apt:
+        upgrade: dist
+        update_cache: yes
+
+    - name: Install essential DevOps tools
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - git
+          - curl
+          - wget
+          - htop
+          - tree
+          - jq
+        state: present
+
+    - name: Add Docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Add user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes

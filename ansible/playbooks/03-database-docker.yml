@@ -1,0 +1,51 @@
+---
+- name: Setup MySQL Database with Docker
+  hosts: db
+  become: yes
+
+  tasks:
+    - name: Pull MySQL Docker image
+      docker_image:
+        name: mysql:8.0
+        source: pull
+
+    - name: Stop and remove any existing MySQL container
+      docker_container:
+        name: mysql-db
+        state: absent
+      ignore_errors: yes
+
+    - name: Run MySQL in Docker
+      docker_container:
+        name: mysql-db
+        image: mysql:8.0
+        state: started
+        env:
+          MYSQL_ROOT_PASSWORD: "DevOps123!"
+          MYSQL_DATABASE: "devops_app"
+          MYSQL_USER: "app_user"
+          MYSQL_PASSWORD: "App123!"
+        ports:
+          - "3306:3306"
+        restart_policy: always
+
+    - name: Wait for MySQL to start
+      wait_for:
+        port: 3306
+        delay: 10
+        timeout: 60
+
+    - name: Test MySQL connection
+      shell: |
+        docker exec mysql-db mysql -u app_user -pApp123! -e "SHOW DATABASES;"
+      register: db_test
+
+    - name: Show database status
+      debug:
+        msg:
+          - "✅ MySQL Database running in Docker!"
+          - "📊 Database: devops_app"
+          - "👤 User: app_user"
+          - "🔑 Password: App123!"
+          - "🔌 Connect: mysql -h 192.168.56.11 -u app_user -pApp123!"
+          - "Test result: {{ db_test.stdout }}"

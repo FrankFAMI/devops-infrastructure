@@ -1,0 +1,28 @@
+---
+- name: Setup basic server configuration
+  hosts: all
+  become: yes
+  become_method: sudo
+  become_user: root
+  become_flags: '-H -S'
+  gather_facts: yes
+  
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Install essential packages
+      apt:
+        name: ["curl", "wget", "vim", "htop", "tree", "git"]
+        state: present
+
+    - name: Create admin user
+      user:
+        name: devops
+        groups: sudo
+        shell: /bin/bash
+
+    - name: Show final message
+      debug:
+        msg: "Server setup completed successfully!"

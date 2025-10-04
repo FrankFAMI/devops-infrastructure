@@ -1,0 +1,44 @@
+---
+- name: Deploy SQLite Database on DB Server
+  hosts: db
+  become: yes
+
+  tasks:
+    - name: Install SQLite
+      apt:
+        name: sqlite3
+        state: present
+
+    - name: Create database directory
+      file:
+        path: /opt/databases
+        state: directory
+        owner: vagrant
+        group: vagrant
+
+    - name: Create and populate main database
+      shell: |
+        cd /opt/databases
+        sqlite3 devops_app.db "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);"
+        sqlite3 devops_app.db "INSERT INTO users (name, email) VALUES ('Admin User', 'admin@company.com');"
+        sqlite3 devops_app.db "INSERT INTO users (name, email) VALUES ('DevOps Engineer', 'devops@company.com');"
+        sqlite3 devops_app.db "INSERT INTO users (name, email) VALUES ('Test User', 'test@company.com');"
+        
+        sqlite3 devops_app.db "CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, price REAL, category TEXT);"
+        sqlite3 devops_app.db "INSERT INTO products (name, price, category) VALUES ('Laptop', 999.99, 'Electronics');"
+        sqlite3 devops_app.db "INSERT INTO products (name, price, category) VALUES ('Book', 29.99, 'Education');"
+        
+        echo "=== Database Summary ==="
+        sqlite3 devops_app.db ".tables"
+        sqlite3 devops_app.db "SELECT 'Users:' as ''; SELECT * FROM users;"
+        sqlite3 devops_app.db "SELECT 'Products:' as ''; SELECT * FROM products;"
+      register: db_setup
+
+    - name: Show database status
+      debug:
+        msg:
+          - "✅ Database server setup completed on {{ inventory_hostname }}!"
+          - "📊 Database: /opt/databases/devops_app.db"
+          - "👥 Tables: users, products"
+          - "📝 Sample data inserted"
+          - "🔍 Test with: sqlite3 /opt/databases/devops_app.db 'SELECT * FROM users;'"

@@ -1,0 +1,45 @@
+---
+- name: CI/CD Application Deployment
+  hosts: web
+  become: yes
+  vars:
+    app_name: "net8-app"
+    app_port: "8080"
+
+  tasks:
+    - name: Stop existing container
+      docker_container:
+        name: "{{ app_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Pull latest application image
+      docker_image:
+        name: "mcr.microsoft.com/dotnet/samples:aspnetapp"
+        source: pull
+
+    - name: Run application container
+      docker_container:
+        name: "{{ app_name }}"
+        image: "mcr.microsoft.com/dotnet/samples:aspnetapp"
+        state: started
+        ports:
+          - "{{ app_port }}:8080"
+        restart_policy: always
+
+    - name: Wait for application to be healthy
+      wait_for:
+        port: "{{ app_port }}"
+        delay: 10
+        timeout: 60
+
+    - name: Verify application health
+      uri:
+        url: "http://localhost:{{ app_port }}"
+        method: GET
+        status_code: 200
+      register: health_check
+
+    - name: Log deployment
+      debug:
+        msg: "✅ Application deployed successfully. Status: {{ health_check.status }}"

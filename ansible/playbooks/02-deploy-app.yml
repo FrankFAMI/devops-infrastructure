@@ -1,0 +1,59 @@
+---
+- name: Deploy .NET 8 Application to Web Servers
+  hosts: web
+  become: yes
+  
+  tasks:
+    - name: Pull .NET 8 sample application image
+      docker_image:
+        name: "mcr.microsoft.com/dotnet/samples:aspnetapp"
+        source: pull
+
+    - name: Stop and remove existing container (if any)
+      docker_container:
+        name: "net8-app"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run .NET 8 sample application
+      docker_container:
+        name: "net8-app"
+        image: "mcr.microsoft.com/dotnet/samples:aspnetapp"
+        state: started
+        ports:
+          - "8080:80"
+        restart_policy: always
+
+    - name: Wait longer for application to start
+      wait_for:
+        port: 8080
+        host: 0.0.0.0
+        delay: 15
+        timeout: 90
+        state: started
+
+    - name: Check if application is responding (with retry)
+      shell: |
+        for i in {1..10}; do
+          if curl -s http://localhost:8080 > /dev/null; then
+            echo "Application is responding"
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "Application not responding after 50 seconds"
+        exit 1
+      register: app_check
+      failed_when: app_check.rc != 0
+
+    - name: Get application response
+      shell: "curl -s http://localhost:8080 | head -n 5"
+      register: app_response
+      failed_when: false
+
+    - name: Show application status
+      debug:
+        msg: 
+          - ".NET 8 application deployed successfully!"
+          - "Access at: http://{{ inventory_hostname }}:8080"
+          - "First few lines: {{ app_response.stdout }}"

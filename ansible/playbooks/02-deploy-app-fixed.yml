@@ -1,0 +1,39 @@
+---
+- name: Deploy .NET 8 Application to Web Servers
+  hosts: web
+  become: yes
+  
+  tasks:
+    - name: Stop and remove any existing container
+      docker_container:
+        name: "net8-app"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run .NET 8 sample application with correct ports
+      docker_container:
+        name: "net8-app"
+        image: "mcr.microsoft.com/dotnet/samples:aspnetapp"
+        state: started
+        ports:
+          - "8080:8080"  # Host:Container port mapping
+        restart_policy: always
+
+    - name: Wait for application to start
+      wait_for:
+        port: 8080
+        delay: 10
+        timeout: 30
+
+    - name: Test the application on correct port
+      uri:
+        url: "http://localhost:8080"
+        method: GET
+      register: test_result
+
+    - name: Show deployment success
+      debug:
+        msg: 
+          - "🎉 .NET 8 application deployed successfully!"
+          - "📱 Access your app at: http://{{ inventory_hostname }}:8080"
+          - "🔧 Status: {{ test_result.status }}"
